@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Schedule Planner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .schedule-container {
+            margin-top: 20px;
+        }
+        .schedule-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffcccb;
+        }
+        .schedule-item.completed {
+            background-color: #d6f5d6;
+        }
+        button {
+            margin-left: 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .mark-btn {
+            background-color: #33cc33;
+            color: white;
+        }
+        .undo-btn {
+            background-color: #ffa500;
+            color: white;
+        }
+        .edit-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            background-color: #99cc66;
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Daily Schedule Planner</h1>
+
+    <a href="https://chatgpt.com/g/g-673a5911cfdc8191b0a197a38d932098-daily-schedule-planner" target="_blank" class="link-button">GPT Formatter</a>
+
+    <h2>Paste JSON Data</h2>
+    <textarea id="jsonInput" placeholder="Paste your JSON data here"></textarea>
+    <button id="importJsonBtn">Import JSON</button>
+
+    <div class="section">
+        <h2>Daily Schedule</h2>
+        <div id="scheduleList" class="schedule-container"></div>
+    </div>
+
+    <script>
+        let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+
+        // Import JSON Data
+        document.getElementById('importJsonBtn').addEventListener('click', () => {
+            const jsonInput = document.getElementById('jsonInput').value;
+
+            try {
+                const importedSchedule = JSON.parse(jsonInput);
+                schedule = [...schedule, ...importedSchedule];
+                saveSchedule();
+                displaySchedule();
+            } catch (err) {
+                alert("Invalid JSON format. Please paste valid JSON data.");
+            }
+        });
+
+
+        function parseTimeString(timeString) {
+    const [time, modifier] = timeString.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+
+    if (modifier === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (modifier === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    return { hours, minutes };
+}
+
+
+// Function to create a date object from the parsed time string
+function createDateFromTimeString(timeString) {
+    const now = new Date(); // Use today's date
+    const { hours, minutes } = parseTimeString(timeString);
+    now.setHours(hours);
+    now.setMinutes(minutes);
+    now.setSeconds(0);
+    return now;
+}
+
+
+// Updated formatTime function to handle time properly
+function formatTime(timeString) {
+    const date = createDateFromTimeString(timeString);
+
+    const options = {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    };
+
+    return date.toLocaleString('en-US', options).replace(',', '');
+}
+
+        // Display Schedule
+        function displaySchedule() {
+    const scheduleList = document.getElementById('scheduleList');
+
+    scheduleList.innerHTML = schedule.map((item, index) => `
+        <div class="schedule-item">
+            <div>
+                <strong>${item.name}</strong> (From: ${formatTime(item.startTime)} to ${formatTime(item.endTime)})<br>
+                Priority: ${item.priority}
+            </div>
+            <div>
+                <button class="edit-btn" onclick="editScheduleItem(${index})">Edit</button>
+                <button class="delete-btn" onclick="deleteScheduleItem(${index})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+        }
+
+        // Edit Schedule Item
+        function editScheduleItem(index) {
+            const item = schedule[index];
+            const newName = prompt("Edit task name:", item.name) || item.name;
+            const newStartTime = prompt("Edit start time (YYYY-MM-DD hh:mm AM/PM):", formatTime(item.startTime)) || item.startTime;
+            const newEndTime = prompt("Edit end time (YYYY-MM-DD hh:mm AM/PM):", formatTime(item.endTime)) || item.endTime;
+            const newPriority = prompt("Edit priority (High/Medium/Low):", item.priority) || item.priority;
+
+            schedule[index] = { ...item, name: newName, startTime: new Date(newStartTime).toISOString(), endTime: new Date(newEndTime).toISOString(), priority: newPriority };
+            saveSchedule();
+            displaySchedule();
+        }
+
+        // Delete Schedule Item
+        function deleteScheduleItem(index) {
+            if (confirm(`Are you sure you want to delete "${schedule[index].name}"?`)) {
+                schedule.splice(index, 1);
+                saveSchedule();
+                displaySchedule();
+            }
+        }
+
+        // Save Schedule to Local Storage
+        function saveSchedule() {
+            localStorage.setItem('schedule', JSON.stringify(schedule));
+        }
+
+        // Load Schedule on Page Load
+        displaySchedule();
+    </script>
+</body>
+</html>
